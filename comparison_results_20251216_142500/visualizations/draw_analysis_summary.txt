@@ -1,0 +1,29 @@
+================================================================================
+DRAW GAME ANALYSIS SUMMARY
+================================================================================
+
+Total draw games analyzed: 504
+
+Player 1 Average Progress: 59.6%
+Player 1 Median Progress: 64.3%
+Player 1 Std Dev: 22.6%
+
+Player 2 Average Progress: 51.1%
+Player 2 Median Progress: 50.0%
+Player 2 Std Dev: 23.5%
+
+Average Progress Difference: 36.9%
+Median Progress Difference: 35.7%
+
+Average Pattern Overlap: 99.7%
+Exact Pattern Matches: 500 (99.2%)
+
+Average Turns to Draw: 115.9
+
+Quadrant Analysis:
+  Both High (≥70%): 4 (0.8%)
+  Both Stuck (<70%): 135 (26.8%)
+  P1 Ahead: 222 (44.0%)
+  P2 Ahead: 143 (28.4%)
+
+================================================================================
