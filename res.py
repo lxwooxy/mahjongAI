@@ -6,6 +6,7 @@ Run this to get the numbers to put IN the paper.
 
 import pandas as pd
 import numpy as np
+from scipy import stats
 
 df = pd.read_csv('res/player_comparison_results.csv')
 neither = df[df['config_name'] == 'neither'].copy()
@@ -35,15 +36,29 @@ if len(bg_neither) > 0:
     decisive = row['decisive_games']
     win_rate = row['p1_win_rate_decisive']
     
+    # Calculate binomial test p-value (testing if win rate > 50%)
+    p_value = stats.binomtest(p1_wins, n=decisive, p=0.5, alternative='greater').pvalue
+    
     print(f"\nNeither nervous configuration:")
     print(f"  Bayesian wins: {p1_wins}")
     print(f"  Greedy wins: {p2_wins}")
     print(f"  Win rate: {win_rate:.1f}%")
     print(f"  Total decisive games: {decisive}")
     print(f"  Draw rate: {row['draw_pct']:.1f}%")
+    print(f"  P-value (binomial test, H0: p=0.5): {p_value:.4f}")
+    
+    if p_value < 0.001:
+        sig_text = "p < 0.001"
+    elif p_value < 0.01:
+        sig_text = "p < 0.01"
+    elif p_value < 0.05:
+        sig_text = "p < 0.05"
+    else:
+        sig_text = f"p = {p_value:.3f}"
+    
     print(f"\n  → PAPER TEXT: \"The Bayesian agent achieved a {win_rate:.1f}% win rate")
     print(f"     against the Greedy agent in decisive games (neither nervous")
-    print(f"     configuration: {p1_wins} wins vs {p2_wins} losses)\"")
+    print(f"     configuration: {p1_wins} wins vs. {p2_wins} losses, {sig_text} binomial test)\"")
 
 print("\n" + "-"*80)
 print("ALL BAYESIAN VS GREEDY CONFIGURATIONS (13 or 16 total)")
@@ -98,12 +113,15 @@ brc_neither = neither[(neither['player1_type'] == 'bayesian') &
                       (neither['player2_type'] == 'random_commit')]
 if len(brc_neither) > 0:
     row = brc_neither.iloc[0]
+    p_value_brc = stats.binomtest(row['p1_wins'], n=row['decisive_games'], p=0.5, alternative='greater').pvalue
+    
     print(f"\nBayesian vs Random-Commit:")
     print(f"  P1 wins: {row['p1_wins']}")
     print(f"  P2 wins: {row['p2_wins']}")
     print(f"  Decisive games: {row['decisive_games']}")
     print(f"  Win rate: {row['p1_win_rate_decisive']:.1f}%")
     print(f"  Draw rate: {row['draw_pct']:.1f}%")
+    print(f"  P-value: {p_value_brc:.6f}")
     print(f"\n  → PAPER TEXT: \"vs. Random-Commit: {row['p1_win_rate_decisive']:.1f}% win rate")
     print(f"     in decisive games ({row['p1_wins']}/{row['decisive_games']} wins, neither nervous)\"")
 
@@ -113,11 +131,17 @@ total_p1_wins = bpr_all['p1_wins'].sum()
 total_p2_wins = bpr_all['p2_wins'].sum()
 total_games_bpr = bpr_all['total_games'].sum()
 
+if total_p1_wins + total_p2_wins > 0:
+    p_value_bpr = stats.binomtest(total_p1_wins, n=total_p1_wins + total_p2_wins, p=0.5, alternative='greater').pvalue
+else:
+    p_value_bpr = 1.0
+
 print(f"\nBayesian vs Pure Random (all configurations):")
 print(f"  Total P1 wins: {total_p1_wins}")
 print(f"  Total P2 wins: {total_p2_wins}")
 print(f"  Total decisive: {total_p1_wins + total_p2_wins}")
 print(f"  Win rate: {(total_p1_wins/(total_p1_wins + total_p2_wins))*100:.1f}%")
+print(f"  P-value: {p_value_bpr:.6e}")
 print(f"\n  → PAPER TEXT: \"vs. Pure Random: 100% win rate across all configurations")
 print(f"     ({total_p1_wins}/{total_p1_wins + total_p2_wins} total wins, 0 losses)\"")
 
@@ -130,10 +154,13 @@ grc_neither = neither[(neither['player1_type'] == 'greedy') &
                       (neither['player2_type'] == 'random_commit')]
 if len(grc_neither) > 0:
     row = grc_neither.iloc[0]
+    p_value_grc = stats.binomtest(row['p1_wins'], n=row['decisive_games'], p=0.5, alternative='greater').pvalue
+    
     print(f"\nGreedy vs Random-Commit:")
     print(f"  P1 wins: {row['p1_wins']}")
     print(f"  Decisive games: {row['decisive_games']}")
     print(f"  Win rate: {row['p1_win_rate_decisive']:.1f}%")
+    print(f"  P-value: {p_value_grc:.6f}")
     print(f"\n  → PAPER TEXT: \"vs. Random-Commit: {row['p1_win_rate_decisive']:.1f}% win rate")
     print(f"     in decisive games ({row['p1_wins']}/{row['decisive_games']} wins)\"")
 
@@ -142,10 +169,16 @@ gpr_all = df[(df['player1_type'] == 'greedy') & (df['player2_type'] == 'pure_ran
 total_p1_wins_g = gpr_all['p1_wins'].sum()
 total_p2_wins_g = gpr_all['p2_wins'].sum()
 
+if total_p1_wins_g + total_p2_wins_g > 0:
+    p_value_gpr = stats.binomtest(total_p1_wins_g, n=total_p1_wins_g + total_p2_wins_g, p=0.5, alternative='greater').pvalue
+else:
+    p_value_gpr = 1.0
+
 print(f"\nGreedy vs Pure Random (all configurations):")
 print(f"  Total P1 wins: {total_p1_wins_g}")
 print(f"  Total P2 wins: {total_p2_wins_g}")
 print(f"  Win rate: 100%")
+print(f"  P-value: {p_value_gpr:.6e}")
 print(f"\n  → PAPER TEXT: \"vs. Pure Random: 100% win rate across all configurations")
 print(f"     ({total_p1_wins_g}/{total_p1_wins_g + total_p2_wins_g} total wins)\"")
 
@@ -158,12 +191,15 @@ bb_neither = neither[(neither['player1_type'] == 'bayesian') &
                      (neither['player2_type'] == 'bayesian')]
 if len(bb_neither) > 0:
     row = bb_neither.iloc[0]
+    p_value_bb = stats.binomtest(row['p1_wins'], n=row['decisive_games'], p=0.5, alternative='greater').pvalue
+    
     print(f"\nBayesian vs Bayesian:")
     print(f"  P1 wins: {row['p1_wins']}")
     print(f"  P2 wins: {row['p2_wins']}")
     print(f"  Decisive games: {row['decisive_games']}")
     print(f"  P1 win rate: {row['p1_win_rate_decisive']:.1f}%")
     print(f"  Draw rate: {row['draw_pct']:.1f}%")
+    print(f"  P-value: {p_value_bb:.6f}")
     print(f"\n  → PAPER TEXT: \"Bayesian vs. Bayesian yielded {row['p1_win_rate_decisive']:.1f}% P1 wins")
     print(f"     in the 'neither nervous' configuration ({row['p1_wins']}/{row['decisive_games']} decisive games)\"")
 
@@ -172,11 +208,14 @@ gg_neither = neither[(neither['player1_type'] == 'greedy') &
                      (neither['player2_type'] == 'greedy')]
 if len(gg_neither) > 0:
     row = gg_neither.iloc[0]
+    p_value_gg = stats.binomtest(row['p1_wins'], n=row['decisive_games'], p=0.5, alternative='greater').pvalue
+    
     print(f"\nGreedy vs Greedy:")
     print(f"  P1 wins: {row['p1_wins']}")
     print(f"  Decisive games: {row['decisive_games']}")
     print(f"  P1 win rate: {row['p1_win_rate_decisive']:.1f}%")
     print(f"  Draw rate: {row['draw_pct']:.1f}%")
+    print(f"  P-value: {p_value_gg:.6f}")
     print(f"\n  → PAPER TEXT: \"Greedy vs. Greedy showed similar patterns")
     print(f"     ({row['p1_win_rate_decisive']:.1f}% P1 wins, {row['draw_pct']:.1f}% draw rates)\"")
 
@@ -344,4 +383,3 @@ if len(bg_neither) > 0:
     print(f"  Most configs cluster: 52-68% ({len(clustered_52_68)}/{len(win_rates)} configs)")
     print(f"  Draw rates: 81-100%")
     print(f"  Pattern overlap (strategic): {min(overlaps_strategic):.0f}-{max(overlaps_strategic):.0f}%")
-
